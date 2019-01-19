@@ -3,6 +3,6 @@
 
 #include "platform.h"
 
-void dirmap(_Out_ uint8_t *pDirectionBuffer, _In_ uint8_t *pObstacleBuffer, const size_t worldSizeX, const size_t worldSizeY, const size_t startPositionX, const size_t startPositionY);
+fpResult dirmap(_Out_ uint8_t *pDirectionBuffer, _In_ uint8_t *pObstacleBuffer, const size_t worldSizeX, const size_t worldSizeY, const size_t startPositionX, const size_t startPositionY);
 
 #endif // dirmap_h__

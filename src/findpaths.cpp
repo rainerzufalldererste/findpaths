@@ -59,15 +59,33 @@ int main(const int /*argc*/, char ** /*ppArgv*/)
     const auto start = std::chrono::high_resolution_clock::now();
 
     // Add Obstacles.
-    if (appState.keyDown && appState.key == SDLK_LSHIFT)
+    if (appState.keyDown)
     {
       constexpr size_t rowWidth = WorldX >> 3;
       uint8_t *pItem = pObstacles + (rowWidth * appState.mouseY) + (appState.mouseX >> 3);
 
-      if (appState.leftMouseDown)
-        *pItem |= (1 << (appState.mouseX & 7));
-      else if (appState.rightMouseDown)
-        *pItem &= ~(1 << (appState.mouseX & 7));
+      if (appState.key == SDLK_LSHIFT)
+      {
+        if (appState.leftMouseDown)
+          *pItem |= (1 << (appState.mouseX & 7));
+        else if (appState.rightMouseDown)
+          *pItem &= ~(1 << (appState.mouseX & 7));
+      }
+      else if (appState.key == SDLK_LALT)
+      {
+        for (size_t i = 0; i < 8; i++)
+        {
+          if (appState.leftMouseDown)
+            *pItem = 0xFF;
+          else if (appState.rightMouseDown)
+            *pItem = 0;
+
+          pItem += rowWidth;
+
+          if (pItem > pObstacles + rowWidth * WorldY)
+            break;
+        }
+      }
     }
 
     if (appState.keyDown && appState.key == SDLK_LCTRL && appState.leftMouseDown)
@@ -148,7 +166,7 @@ void DrawDirMap(_In_ uint32_t *pPixels, _In_ uint8_t *pDirMap, const size_t worl
 
     __m128i map = _mm_cvtepu8_epi32(dirmap);
 
-    map = _mm_or_si128(_mm_slli_epi32(map, 6), _mm_slli_epi32(map, 7 + 8));
+    map = _mm_or_si128(_mm_slli_epi32(map, 5), _mm_or_si128(_mm_slli_epi32(map, 6 + 8), _mm_slli_epi32(map, 7 + 16)));
 
     _mm_storeu_si128(pPixels128, map);
 

@@ -35,6 +35,7 @@ enum fpResult
   fpR_Success,
   fpR_NotSupported,
   fpR_MemoryAllocationFailure,
+  fpR_IndexOutOfBounds,
 };
 
 #define FP_SUCCESS(errorCode) (errorCode == fpR_Success)
@@ -50,7 +51,14 @@ enum fpResult
   do \
   { if (booleanExpression) \
       FP_ERROR_SET(errorCode); \
-  } while (0) \
+  } while (0)
+
+#define FP_ERROR_CHECK(functionCall) \
+  do \
+  { result = (functionCall); \
+    if (FP_FAILED(result)) \
+      FP_ERROR_SET(result); \
+  } while (0)
 
 template <typename T>
 inline void fpFreePtr(_In_Out_ T **ppData)

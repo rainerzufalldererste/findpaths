@@ -1,4 +1,5 @@
 #include "dirmap.h"
+#include "CyclicQueue.h"
 
 uint8_t * memflag_u8(_In_ uint8_t *pData, const uint8_t flag, _Out_ uint8_t *pEnd)
 {
@@ -13,19 +14,33 @@ uint8_t * memflag_u8(_In_ uint8_t *pData, const uint8_t flag, _Out_ uint8_t *pEn
   return pEnd;
 }
 
-void dirmap(_Out_ uint8_t *pDirectionBuffer, _In_ uint8_t *pObstacleBuffer, const size_t worldSizeX, const size_t worldSizeY, const size_t startPositionX, const size_t startPositionY)
+fpResult dirmap(_Out_ uint8_t *pDirectionBuffer, _In_ uint8_t *pObstacleBuffer, const size_t worldSizeX, const size_t worldSizeY, const size_t startPositionX, const size_t startPositionY)
 {
-  constexpr uint8_t obstacleFlag = 0b10000000;
-  constexpr uint8_t touchedFlag = 0b1000;
-  constexpr uint8_t freshDataFlag = 0b10000;
-  constexpr uint8_t leftFlag = 0b00 | touchedFlag;
-  constexpr uint8_t rightFlag = 0b01 | touchedFlag;
-  constexpr uint8_t upFlag = 0b10 | touchedFlag;
-  constexpr uint8_t downFlag = 0b11 | touchedFlag;
-  constexpr uint8_t newLeftFlag = 0b00 | touchedFlag | freshDataFlag;
-  constexpr uint8_t newRightFlag = 0b01 | touchedFlag | freshDataFlag;
-  constexpr uint8_t newUpFlag = 0b10 | touchedFlag | freshDataFlag;
-  constexpr uint8_t newDownFlag = 0b11 | touchedFlag | freshDataFlag;
+  struct pos 
+  {
+    int16_t x, y;
+    
+    pos()
+    { }
+
+    pos(int16_t x, int16_t y) :
+      x(x),
+      y(y)
+    { }
+  };
+
+  static CyclicQueue<pos> queue;
+  queue.Clear();
+
+  const fpResult result = fpR_Success;
+
+  constexpr uint8_t obstacleFlag = 0b01000000;
+  constexpr int8_t touched = 0b1000;
+  constexpr int8_t left = 1;
+  constexpr int8_t right = 2;
+  constexpr int8_t up = 3;
+  constexpr int8_t down = 6;
+  constexpr int8_t constantSubtract = 1;
 
   // Put obstacles into the direction buffer.
   {
@@ -53,220 +68,75 @@ void dirmap(_Out_ uint8_t *pDirectionBuffer, _In_ uint8_t *pObstacleBuffer, cons
 
   // Put startPosition into the direction buffer.
   {
-    pDirectionBuffer[startPositionY * worldSizeX + startPositionX] |= touchedFlag;
+    (queue.PushBack({(int16_t)startPositionX, (int16_t)startPositionY}));
   }
 
-  // Expand and Store direction.
+  while (queue.Any())
   {
-    uint8_t **ppData = (uint8_t **)alloca(sizeof(uint8_t *) * worldSizeY);
-    size_t *pStart = (size_t *)alloca(sizeof(size_t) * worldSizeY);
-    size_t *pEnd = (size_t *)alloca(sizeof(size_t) * worldSizeY);
+    pos p;
+    (queue.PopFront(&p));
 
-    // Initialize memory.
+    int8_t *pData = (int8_t *)&pDirectionBuffer[p.x + p.y * worldSizeX];
+
+    const bool leftBounds = p.x > 0;
+    const bool rightBounds = p.x + 1 < worldSizeX;
+    const bool upBounds = p.y > 0;
+    const bool downBounds = p.y + 1 < worldSizeY;
+
+    if (leftBounds)
     {
-      uint8_t *pData = pDirectionBuffer;
-
-      for (size_t i = 0; i < worldSizeY; i++)
+      if (*(pData - 1) == 0)
       {
-        pStart[i] = 0;
-        pEnd[i] = worldSizeX;
-        ppData[i] = pData;
-        pData += worldSizeX;
+        *(pData - 1) = ((left) - constantSubtract) | touched;
+        (queue.PushBack(pos(p.x - 1, p.y)));
+      }
+
+      if (upBounds && *(pData - 1 - worldSizeX) == 0)
+      {
+        *(pData - 1 - worldSizeX) = ((left + up) - constantSubtract) | touched;
+        (queue.PushBack(pos(p.x - 1, p.y - 1)));
+      }
+
+      if (downBounds && *(pData - 1 + worldSizeX) == 0)
+      {
+        *(pData - 1 + worldSizeX) = ((left + down) - constantSubtract) | touched;
+        (queue.PushBack(pos(p.x - 1, p.y + 1)));
       }
     }
 
-    while (true)
+    if (upBounds && *(pData - worldSizeX) == 0)
     {
-      register bool changeFound = false;
+      *(pData - worldSizeX) = ((up) - constantSubtract) | touched;
+      (queue.PushBack(pos(p.x, p.y - 1)));
+    }
 
-      // handle first line without checking above.
+    if (downBounds && *(pData + worldSizeX) == 0)
+    {
+      *(pData + worldSizeX) = ((down) - constantSubtract) | touched;
+      (queue.PushBack(pos(p.x, p.y + 1)));
+    }
+
+    if (rightBounds)
+    {
+      if (*(pData + 1) == 0)
       {
-        bool lastWasTouched = true;
-
-        for (size_t i = 0; i < worldSizeX; i++)
-        {
-          if (pDirectionBuffer[i] & touchedFlag)
-          {
-            if (!lastWasTouched)
-            {
-              pDirectionBuffer[i - 1] = newLeftFlag;
-              changeFound = true;
-            }
-
-            lastWasTouched = true;
-          }
-          else
-          {
-            if (lastWasTouched && i > 0)
-            {
-              pDirectionBuffer[i] = newRightFlag;
-              changeFound = true;
-            }
-
-            lastWasTouched = false;
-          }
-        }
-      }
-      
-      uint8_t *pLastLine = pDirectionBuffer;
-      uint8_t *pNextLastLine = pLastLine + worldSizeX;
-
-      for (size_t i = 1; i < worldSizeX; i++)
-      {
-        pLastLine = pNextLastLine;
-        pNextLastLine = ppData[i];
-
-        if (pStart[i] == pEnd[i])
-          continue;
-
-        if (ppData[i][pStart[i]] & touchedFlag) // try to move start forward.
-        {
-          size_t nextStart = pStart[i] + 1;
-          size_t furthestMoveForward = 0;
-
-          for (; nextStart < pEnd[i]; nextStart++)
-          {
-            if (!(ppData[i][nextStart] & touchedFlag))
-            {
-              break;
-            }
-            else if (pLastLine[nextStart] == 0)
-            {
-              pLastLine[nextStart] = newUpFlag;
-              changeFound = true;
-
-              // Order intended!
-              nextStart++;
-              furthestMoveForward = nextStart;
-
-              // We no longer have to check for changeFound or set furthestMoveForward.
-              for (; nextStart < pEnd[i]; nextStart++)
-              {
-                if (!(ppData[i][nextStart] & touchedFlag))
-                {
-                  break;
-                }
-                else if (pLastLine[nextStart] == 0)
-                {
-                  pLastLine[nextStart] = newUpFlag;
-                  changeFound = true;
-                }
-              }
-
-              break;
-            }
-          }
-
-          if (furthestMoveForward > pStart[i])
-            pStart[i] = furthestMoveForward;
-          else
-            pStart[i] = nextStart;
-
-          if (pEnd[i] < pStart[i])
-          {
-            ppData[i][pStart[i]] = newRightFlag;
-            changeFound = true;
-          }
-          else
-          {
-            continue;
-          }
-        }
-
-        size_t pos = pStart[i];
-
-      empty_region: // We're inside an 'empty region'.
-        {
-          size_t nextPos = pos;
-
-          for (; nextPos < pEnd[i]; nextPos++)
-          {
-            if (ppData[i][nextPos] & touchedFlag)
-            {
-              break;
-            }
-            else if (!(ppData[i][nextPos] & obstacleFlag) && pLastLine[nextPos] & touchedFlag && !(pLastLine[nextPos] & freshDataFlag))
-            {
-              ppData[i][nextPos] = newDownFlag;
-              changeFound = true;
-            }
-          }
-          
-          if (nextPos < pEnd[i])
-          {
-            if (!(ppData[i][nextPos - 1] & obstacleFlag))
-            {
-              ppData[i][nextPos - 1] = newLeftFlag;
-              changeFound = true;
-            }
-
-            pos = nextPos;
-            goto solid_region; // redundant.
-          }
-          else
-          {
-            continue;
-          }
-        }
-
-      solid_region: // We're inside an 'solid region'.
-        {
-          size_t furthestEndPosition = pos;
-          size_t nextPos = pos;
-
-          for (; nextPos < pEnd[i]; nextPos++)
-          {
-            if (!(ppData[i][nextPos] & touchedFlag))
-            {
-              break;
-            }
-            else if (pLastLine[nextPos] == 0)
-            {
-              pLastLine[nextPos] = newUpFlag;
-              changeFound = true;
-            }
-            else if (!(pLastLine[nextPos] & touchedFlag))
-            {
-              furthestEndPosition = pos;
-            }
-          }
-
-          if (nextPos < pEnd[i])
-          {
-            if (!(ppData[i][nextPos] & obstacleFlag))
-            {
-              ppData[i][nextPos] = newRightFlag;
-              changeFound = true;
-            }
-
-            pos = nextPos + 1;
-            goto empty_region;
-          }
-          else
-          {
-            pEnd[i] = furthestEndPosition;
-          }
-        }
+        *(pData + 1) = ((right) - constantSubtract) | touched;
+        (queue.PushBack(pos(p.x + 1, p.y)));
       }
 
-      if (!changeFound)
-        break;
-
-      // Remove new data flag.
+      if (upBounds && *(pData + 1 - worldSizeX) == 0)
       {
-        const __m128i mask = _mm_set1_epi8(~freshDataFlag);
+        *(pData - 1 - worldSizeX) = ((right + up) - constantSubtract) | touched;
+        (queue.PushBack(pos(p.x + 1, p.y - 1)));
+      }
 
-        __m128i *pDirections128 = (__m128i *)pDirectionBuffer;
-
-        for (size_t i = 0; i < worldSizeX * worldSizeY; i += 16)
-        {
-          __m128i value = _mm_loadu_si128((__m128i *)pDirections128);
-          value = _mm_and_si128(value, mask);
-          _mm_storeu_si128(pDirections128, value);
-
-          pDirections128++;
-        }
+      if (downBounds && *(pData + 1 + worldSizeX) == 0)
+      {
+        *(pData - 1 + worldSizeX) = ((right + down) - constantSubtract) | touched;
+        (queue.PushBack(pos(p.x + 1, p.y + 1)));
       }
     }
   }
+
+  return result;
 }

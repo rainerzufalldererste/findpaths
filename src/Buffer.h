@@ -1,5 +1,5 @@
-#ifndef SharedBuffer_h__
-#define SharedBuffer_h__
+#ifndef Buffer_h__
+#define Buffer_h__
 
 #include "platform.h"
 
@@ -14,4 +14,4 @@ struct Buffer
   size_t size = 0;
 };
 
-#endif // SharedBuffer_h__
+#endif // Buffer_h__
