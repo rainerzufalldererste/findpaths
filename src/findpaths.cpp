@@ -98,7 +98,7 @@ int main(const int /*argc*/, char ** /*ppArgv*/)
       DrawObstacles(pPixels, pObstacles, WorldX, WorldY);
     }
 
-    printf("\r%f ms       ", 0.0001 * 0.0001 * std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now() - start).count());
+    printf("\r%f ms       ", 0.001 * std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start).count());
 
     // End frame.
     SDL_UpdateWindowSurface(pWindow);
@@ -160,15 +160,24 @@ void DrawDirMap(_In_ uint32_t *pPixels, _In_ uint8_t *pDirMap, const size_t worl
 {
   __m128i *pPixels128 = (__m128i *)pPixels;
 
+  const __m128i cRFlag = _mm_set1_epi32(0b1);
+  const __m128i cGFlag = _mm_set1_epi32(0b10);
+  const __m128i cBFlag = _mm_set1_epi32(0b100);
+  const __m128i bFlag = _mm_set1_epi32(0xFF);
+  const __m128i gFlag = _mm_set1_epi32(0xFF00);
+  const __m128i rFlag = _mm_set1_epi32(0xFF0000);
+
   for (size_t i = 0; i < worldX * worldY; i += 4)
   {
     const __m128i dirmap = _mm_loadu_si128((__m128i *)pDirMap);
 
-    __m128i map = _mm_cvtepu8_epi32(dirmap);
+    const __m128i map = _mm_cvtepu8_epi32(dirmap);
 
-    map = _mm_or_si128(_mm_slli_epi32(map, 5), _mm_or_si128(_mm_slli_epi32(map, 6 + 8), _mm_slli_epi32(map, 7 + 16)));
+    const __m128i b = _mm_and_si128(_mm_cmpeq_epi32(_mm_and_si128(map, cBFlag), cBFlag), bFlag);
+    const __m128i g = _mm_and_si128(_mm_cmpeq_epi32(_mm_and_si128(map, cGFlag), cGFlag), gFlag);
+    const __m128i r = _mm_and_si128(_mm_cmpeq_epi32(_mm_and_si128(map, cRFlag), cRFlag), rFlag);
 
-    _mm_storeu_si128(pPixels128, map);
+    _mm_storeu_si128(pPixels128, _mm_or_si128(r, _mm_or_si128(g, b)));
 
     pPixels128++;
     pDirMap += 4;

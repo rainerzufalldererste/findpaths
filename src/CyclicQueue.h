@@ -31,9 +31,9 @@ inline void CyclicQueue<T>::PushBack(T item)
 {
   if (pStart == nullptr || pBack + 1 == pFront)
   {
-    const size_t newCapacity = std::max(1024ULL, capacity * 2 + 1);
+    const size_t newCapacity = std::max(1024ULL * 32, (capacity + 1) * 2);
     const size_t offsetStart = pFront - pStart;
-    const size_t offsetEnd = pFront - pBack;
+    const size_t offsetEnd = pBack - pStart;
     pStart = (T *)realloc(pStart, sizeof(T) * newCapacity);
 
     if (pStart == nullptr)
@@ -46,7 +46,7 @@ inline void CyclicQueue<T>::PushBack(T item)
     if (offsetStart > 0 && offsetStart + count > capacity)
     {
       const size_t wrappedCount = count - (capacity - offsetStart);
-      memmove(pLast, pStart, wrappedCount);
+      memmove(pLast, pStart, wrappedCount * sizeof(T));
       pBack = pLast + wrappedCount;
     }
 
@@ -66,6 +66,7 @@ template<typename T>
 void CyclicQueue<T>::PopFront(T *pItem)
 {
   *pItem = *pFront;
+
   pFront++;
   count--;
   

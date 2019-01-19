@@ -35,12 +35,22 @@ fpResult dirmap(_Out_ uint8_t *pDirectionBuffer, _In_ uint8_t *pObstacleBuffer, 
   const fpResult result = fpR_Success;
 
   constexpr uint8_t obstacleFlag = 0b01000000;
-  constexpr int8_t touched = 0b1000;
-  constexpr int8_t left = 1;
-  constexpr int8_t right = 2;
-  constexpr int8_t up = 3;
-  constexpr int8_t down = 6;
-  constexpr int8_t constantSubtract = 1;
+  constexpr int8_t touched = 0b10000;
+
+  // constexpr int8_t left = 1;
+  // constexpr int8_t right = 2;
+  // constexpr int8_t up = 3;
+  // constexpr int8_t down = 6;
+  // constexpr int8_t constantSubtract = 1;
+
+  constexpr int8_t leftFlag = (1 - 1) | touched; // 0
+  constexpr int8_t rightFlag = (2 - 1) | touched; // 1
+  constexpr int8_t upFlag = (3 - 1) | touched; // 2
+  constexpr int8_t upLeftFlag = (3 + 1 - 1) | touched; // 3
+  constexpr int8_t upRightFlag = (3 + 2 - 1) | touched; // 4
+  constexpr int8_t downFlag = (6 - 1) | touched; // 5
+  constexpr int8_t downLeftFlag = (6 + 1 - 1) | touched; // 6
+  constexpr int8_t downRightFlag = (6 + 2 - 1) | touched; // 7
 
   // Put obstacles into the direction buffer.
   {
@@ -76,6 +86,8 @@ fpResult dirmap(_Out_ uint8_t *pDirectionBuffer, _In_ uint8_t *pObstacleBuffer, 
     pos p;
     (queue.PopFront(&p));
 
+    assert(p.x < worldSizeX && p.y < worldSizeY && p.x >= 0 && p.y >= 0);
+
     int8_t *pData = (int8_t *)&pDirectionBuffer[p.x + p.y * worldSizeX];
 
     const bool leftBounds = p.x > 0;
@@ -83,58 +95,64 @@ fpResult dirmap(_Out_ uint8_t *pDirectionBuffer, _In_ uint8_t *pObstacleBuffer, 
     const bool upBounds = p.y > 0;
     const bool downBounds = p.y + 1 < worldSizeY;
 
+    if (rightBounds)
+    {
+      if (*(pData + 1) == 0)
+      {
+        *(pData + 1) = rightFlag;
+        (queue.PushBack(pos(p.x + 1, p.y)));
+      }
+    }
+
     if (leftBounds)
     {
       if (*(pData - 1) == 0)
       {
-        *(pData - 1) = ((left) - constantSubtract) | touched;
+        *(pData - 1) = leftFlag;
         (queue.PushBack(pos(p.x - 1, p.y)));
       }
+    }
 
+    if (rightBounds)
+    {
+      if (upBounds && *(pData + 1 - worldSizeX) == 0)
+      {
+        *(pData + 1 - worldSizeX) = upRightFlag;
+        (queue.PushBack(pos(p.x + 1, p.y - 1)));
+      }
+
+      if (downBounds && *(pData + 1 + worldSizeX) == 0)
+      {
+        *(pData + 1 + worldSizeX) = downRightFlag;
+        (queue.PushBack(pos(p.x + 1, p.y + 1)));
+      }
+    }
+
+    if (leftBounds)
+    {
       if (upBounds && *(pData - 1 - worldSizeX) == 0)
       {
-        *(pData - 1 - worldSizeX) = ((left + up) - constantSubtract) | touched;
+        *(pData - 1 - worldSizeX) = upLeftFlag;
         (queue.PushBack(pos(p.x - 1, p.y - 1)));
       }
 
       if (downBounds && *(pData - 1 + worldSizeX) == 0)
       {
-        *(pData - 1 + worldSizeX) = ((left + down) - constantSubtract) | touched;
+        *(pData - 1 + worldSizeX) = downLeftFlag;
         (queue.PushBack(pos(p.x - 1, p.y + 1)));
       }
     }
 
     if (upBounds && *(pData - worldSizeX) == 0)
     {
-      *(pData - worldSizeX) = ((up) - constantSubtract) | touched;
+      *(pData - worldSizeX) = upFlag;
       (queue.PushBack(pos(p.x, p.y - 1)));
     }
 
     if (downBounds && *(pData + worldSizeX) == 0)
     {
-      *(pData + worldSizeX) = ((down) - constantSubtract) | touched;
+      *(pData + worldSizeX) = downFlag;
       (queue.PushBack(pos(p.x, p.y + 1)));
-    }
-
-    if (rightBounds)
-    {
-      if (*(pData + 1) == 0)
-      {
-        *(pData + 1) = ((right) - constantSubtract) | touched;
-        (queue.PushBack(pos(p.x + 1, p.y)));
-      }
-
-      if (upBounds && *(pData + 1 - worldSizeX) == 0)
-      {
-        *(pData - 1 - worldSizeX) = ((right + up) - constantSubtract) | touched;
-        (queue.PushBack(pos(p.x + 1, p.y - 1)));
-      }
-
-      if (downBounds && *(pData + 1 + worldSizeX) == 0)
-      {
-        *(pData - 1 + worldSizeX) = ((right + down) - constantSubtract) | touched;
-        (queue.PushBack(pos(p.x + 1, p.y + 1)));
-      }
     }
   }
 

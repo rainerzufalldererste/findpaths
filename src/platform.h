@@ -6,6 +6,7 @@
 #include <limits.h>
 #include <stdio.h>
 #include <string.h>
+#include <assert.h>
 
 #include <chrono>
 #include <algorithm>
