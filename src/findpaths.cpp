@@ -3,11 +3,6 @@
 
 //////////////////////////////////////////////////////////////////////////
 
-struct Unit
-{
-  uint16_t positionX, positionY, destinationX, destinationY;
-};
-
 void DrawObstacles(_In_ uint32_t *pPixels, _In_ uint8_t *pObstacles, const size_t worldX, const size_t worldY);
 void DrawDirMap(_In_ uint32_t *pPixels, _In_ uint8_t *pDirMap, const size_t worldX, const size_t worldY);
 
@@ -15,12 +10,9 @@ void DrawDirMap(_In_ uint32_t *pPixels, _In_ uint8_t *pDirMap, const size_t worl
 
 constexpr size_t WorldX = 1024;
 constexpr size_t WorldY = 1024;
-constexpr size_t WorldSubSample = 3;
-constexpr size_t NavLutSizeX = WorldX >> WorldSubSample;
-constexpr size_t NavLutSizeY = WorldY >> WorldSubSample;
 constexpr size_t UnitCount = 1024;
 
-static_assert(WorldX % 16 == 0 && WorldY % 16 == 0 && WorldX < INT_MAX && WorldY < INT_MAX && NavLutSizeX > 0 && NavLutSizeY > 0, "Invalid Configuration");
+static_assert(WorldX % 16 == 0 && WorldY % 16 == 0 && WorldX < INT_MAX && WorldY < INT_MAX, "Invalid Configuration");
 
 int main(const int /*argc*/, char ** /*ppArgv*/)
 {
@@ -29,7 +21,6 @@ int main(const int /*argc*/, char ** /*ppArgv*/)
   SDL_Window *pWindow = nullptr;
   uint32_t *pPixels = nullptr;
   uint8_t *pObstacles = nullptr;
-  //Unit *pUnits = nullptr;
   uint8_t *pDirMap = nullptr;
 
   AppState appState = { 0 };

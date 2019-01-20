@@ -35,7 +35,7 @@ fpResult dirmap(_Out_ uint8_t *pDirectionBuffer, _In_ uint8_t *pObstacleBuffer, 
   const fpResult result = fpR_Success;
 
   constexpr uint8_t obstacleFlag = 0b01000000;
-  constexpr int8_t touched = 0b10000;
+  constexpr int8_t touched = 0b1000;
 
   // constexpr int8_t left = 1;
   // constexpr int8_t right = 2;
