@@ -26,8 +26,8 @@ project(ProjectName)
   includedirs { "3rdParty" }
   
   targetname(ProjectName)
-  targetdir "../builds/bin"
-  debugdir "../builds/bin"
+  targetdir "builds/bin"
+  debugdir "builds/bin"
   
 filter {}
 configuration {}

@@ -23,7 +23,8 @@ int main(const int /*argc*/, char ** /*ppArgv*/)
   uint8_t *pObstacles = nullptr;
   uint8_t *pDirMap = nullptr;
 
-  AppState appState = { 0 };
+  AppState appState;
+  memset(&appState, 0, sizeof(AppState));
 
   // Initialize Window.
   {
@@ -116,6 +117,9 @@ epilogue:
 
 //////////////////////////////////////////////////////////////////////////
 
+#ifndef _MSC_VER
+__attribute__((target("sse4.1")))
+#endif
 void DrawObstacles(_In_ uint32_t *pPixels, _In_ uint8_t *pObstacles, const size_t worldX, const size_t worldY)
 {
   const __m128i maskHi = _mm_set_epi32(0b10000000, 0b1000000, 0b100000, 0b10000);
@@ -147,6 +151,9 @@ void DrawObstacles(_In_ uint32_t *pPixels, _In_ uint8_t *pObstacles, const size_
   }
 }
 
+#ifndef _MSC_VER
+__attribute__((target("sse4.1")))
+#endif
 void DrawDirMap(_In_ uint32_t *pPixels, _In_ uint8_t *pDirMap, const size_t worldX, const size_t worldY)
 {
   __m128i *pPixels128 = (__m128i *)pPixels;

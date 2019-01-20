@@ -31,7 +31,7 @@ inline void CyclicQueue<T>::PushBack(T item)
 {
   if (pStart == nullptr || pBack + 1 == pFront)
   {
-    const size_t newCapacity = std::max(1024ULL * 32, (capacity + 1) * 2);
+    const size_t newCapacity = fpMax(1024ULL * 32, (capacity + 1) * 2);
     const size_t offsetStart = pFront - pStart;
     const size_t offsetEnd = pBack - pStart;
     pStart = (T *)realloc(pStart, sizeof(T) * newCapacity);

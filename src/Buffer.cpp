@@ -11,7 +11,7 @@ fpResult Buffer::AddData(_In_ void *pAppendData, const size_t dataSize, _Out_ si
 
   if (pData == nullptr || size + dataSize > capacity)
   {
-    const size_t newCapacity = std::max(std::max((capacity + 1) * 2, capacity + dataSize), 1024ULL);
+    const size_t newCapacity = fpMax(fpMax((capacity + 1) * 2, capacity + dataSize), 1024ULL);
 
     pData = (uint8_t *)realloc(pData, newCapacity);
     FP_ERROR_IF(!pData, fpR_MemoryAllocationFailure);

@@ -16,6 +16,10 @@ bool HandleWindowEvents(_Out_ AppState *pAppState)
 
       if (pAppState->key != SDLK_ESCAPE)
         break;
+
+#ifndef _MSC_VER
+      __attribute__((fallthrough));
+#endif
     }
 
     case SDL_QUIT:

@@ -17,6 +17,8 @@
 #else
 #include <SDL2/SDL.h>
 #include <x86intrin.h>
+
+#define __debugbreak() __builtin_trap()
 #endif
 
 #ifndef _In_
@@ -68,6 +70,18 @@ inline void fpFreePtr(_In_Out_ T **ppData)
     free(*ppData);
 
   *ppData = nullptr;
+}
+
+template <typename T, typename U>
+constexpr inline auto fpMax(T a, U b) -> decltype(a > b ? a : b)
+{
+  return a > b ? a : b;
+}
+
+template <typename T, typename U>
+constexpr inline auto fpMin(T a, U b) -> decltype(a < b ? a : b)
+{
+  return a < b ? a : b;
 }
 
 //////////////////////////////////////////////////////////////////////////

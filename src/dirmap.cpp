@@ -14,6 +14,9 @@ uint8_t * memflag_u8(_In_ uint8_t *pData, const uint8_t flag, _Out_ uint8_t *pEn
   return pEnd;
 }
 
+#ifndef _MSC_VER
+__attribute__((target("sse4.1")))
+#endif
 fpResult dirmap(_Out_ uint8_t *pDirectionBuffer, _In_ uint8_t *pObstacleBuffer, const size_t worldSizeX, const size_t worldSizeY, const size_t startPositionX, const size_t startPositionY)
 {
   struct pos 
@@ -91,9 +94,9 @@ fpResult dirmap(_Out_ uint8_t *pDirectionBuffer, _In_ uint8_t *pObstacleBuffer, 
     int8_t *pData = (int8_t *)&pDirectionBuffer[p.x + p.y * worldSizeX];
 
     const bool leftBounds = p.x > 0;
-    const bool rightBounds = p.x + 1 < worldSizeX;
+    const bool rightBounds = (size_t)(p.x + 1) < worldSizeX;
     const bool upBounds = p.y > 0;
-    const bool downBounds = p.y + 1 < worldSizeY;
+    const bool downBounds = (size_t)(p.y + 1) < worldSizeY;
 
     if (rightBounds)
     {
